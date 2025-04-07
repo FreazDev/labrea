@@ -29,6 +29,32 @@
             text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
         }
 
+        .special-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .special-btn {
+            padding: 12px 25px;
+            font-size: 18px;
+            font-weight: bold;
+            color: white;
+            background: linear-gradient(135deg, #FF416C 0%, #FF4B2B 100%);
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+        }
+
+        .special-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.2);
+        }
+
         .season-buttons {
             display: flex;
             justify-content: center;
@@ -149,7 +175,7 @@
 
         /* Responsive Design */
         @media (max-width: 600px) {
-            .season-buttons {
+            .season-buttons, .special-buttons {
                 flex-direction: column;
                 gap: 10px;
             }
@@ -168,6 +194,11 @@
 <body>
     <div class="container">
         <h1>TAcosssssss</h1>
+        
+        <div class="special-buttons">
+            <button class="special-btn" onclick="playSpecialContent('https://store9.gofile.io/download/direct/6f68e2b3-5240-4c85-aba2-999aab8acb24/l-amour-ouf.mp4?cb_y28vr5u00nd=1744057336687')">L'Amour Ouf</button>
+            <button class="special-btn" onclick="playSpecialContent('https://dl30.topstrime.online/hls2/10/01012/9hcdym9i1fl2_x/index-v1-a1.m3u8?t=ocb7L5V3rOcQLT86mN6HFqrZ_x7w8oEnlr_w9wUQZyo&s=1744057769&e=43200&f=5063422&i=0.0&sp=0&fr=9hcdym9i1fl2')">Bonus Spécial</button>
+        </div>
         
         <div class="season-buttons">
             <button class="season-btn active" onclick="showEpisodes(1)">Saison 2</button>
@@ -252,16 +283,42 @@
             const selectedOption = selectElement.options[selectElement.selectedIndex];
             document.getElementById('modal-title').textContent = `Saison ${seasonNum === 1 ? 2 : 3} - ${selectedOption.text}`;
             
-            // Set video source using HTML5 video element
+            playVideo(videoUrl);
+        }
+        
+        function playSpecialContent(videoUrl) {
+            document.getElementById('modal-title').textContent = "Contenu Spécial";
+            playVideo(videoUrl);
+        }
+        
+        function playVideo(videoUrl) {
             const videoPlayer = document.getElementById('videoPlayer');
-            videoPlayer.src = videoUrl;
             
-            // Reset video and try to play
-            videoPlayer.load();
-            videoPlayer.play().catch(e => {
-                console.error("La lecture automatique a échoué:", e);
-                // Affiche un message à l'utilisateur si nécessaire
-            });
+            // Détecte si c'est un flux HLS (.m3u8)
+            if (videoUrl.includes('.m3u8')) {
+                // Utiliser hls.js pour les streams HLS si nécessaire
+                if (Hls.isSupported()) {
+                    const hls = new Hls();
+                    hls.loadSource(videoUrl);
+                    hls.attachMedia(videoPlayer);
+                    hls.on(Hls.Events.MANIFEST_PARSED, function() {
+                        videoPlayer.play().catch(e => console.error("Erreur de lecture:", e));
+                    });
+                } else if (videoPlayer.canPlayType('application/vnd.apple.mpegurl')) {
+                    // Support natif pour HLS (Safari)
+                    videoPlayer.src = videoUrl;
+                    videoPlayer.play().catch(e => console.error("Erreur de lecture:", e));
+                } else {
+                    alert("Votre navigateur ne supporte pas la lecture de ce format vidéo");
+                }
+            } else {
+                // Vidéo standard
+                videoPlayer.src = videoUrl;
+                videoPlayer.load();
+                videoPlayer.play().catch(e => {
+                    console.error("La lecture automatique a échoué:", e);
+                });
+            }
             
             // Show modal
             document.getElementById('videoModal').style.display = 'flex';
@@ -272,6 +329,13 @@
             const videoPlayer = document.getElementById('videoPlayer');
             videoPlayer.pause();
             videoPlayer.currentTime = 0;
+            
+            // Détruit l'instance HLS si elle existe
+            if (videoPlayer.hls) {
+                videoPlayer.hls.destroy();
+                videoPlayer.hls = null;
+            }
+            
             document.getElementById('videoModal').style.display = 'none';
         }
         
@@ -282,6 +346,20 @@
                 closeModal();
             }
         }
+    </script>
+    
+    <!-- Chargement de hls.js pour la lecture des streams HLS -->
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+    <script>
+        // Initialisation de hls.js si nécessaire
+        document.addEventListener('DOMContentLoaded', function() {
+            const videoPlayer = document.getElementById('videoPlayer');
+            videoPlayer.addEventListener('play', function() {
+                if (this.hls) {
+                    this.hls.startLoad();
+                }
+            });
+        });
     </script>
 </body>
 </html>
