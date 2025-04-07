@@ -129,28 +129,17 @@
 
         .video-container {
             position: relative;
-            padding-bottom: 56.25%; /* 16:9 Aspect Ratio */
-            height: 0;
-            overflow: hidden;
+            width: 100%;
+            max-height: 80vh;
+            aspect-ratio: 16/9;
             margin-top: 15px;
         }
 
-        .video-container iframe {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            border: none;
-        }
-
-        /* HTML5 Video Player Style */
         .video-container video {
-            position: absolute;
-            top: 0;
-            left: 0;
             width: 100%;
             height: 100%;
+            object-fit: contain;
+            background-color: #000;
         }
 
         @keyframes fadeIn {
@@ -167,6 +156,11 @@
             
             .modal-content {
                 width: 95%;
+                padding: 10px;
+            }
+            
+            .video-container {
+                max-height: 60vh;
             }
         }
     </style>
@@ -176,11 +170,11 @@
         <h1>TAcosssssss</h1>
         
         <div class="season-buttons">
-            <button class="season-btn" onclick="showEpisodes(1)">Saison 2</button>
+            <button class="season-btn active" onclick="showEpisodes(1)">Saison 2</button>
             <button class="season-btn" onclick="showEpisodes(2)">Saison 3</button>
         </div>
         
-        <div id="season1-episodes" class="episode-selector">
+        <div id="season1-episodes" class="episode-selector active">
             <select id="season1-select" onchange="playEpisode(1, this.value)">
                 <option value="" disabled selected>Sélectionnez un épisode</option>
                 <option value="https://store5.gofile.io/download/direct/b2d0243b-4b65-4638-88ae-f8f0803170c5/ep1.mp4?cb_r0o0t1040xi=1744054587003">Épisode 1</option>
@@ -219,8 +213,7 @@
             <span class="close-btn" onclick="closeModal()">&times;</span>
             <h2 id="modal-title">Épisode</h2>
             <div class="video-container">
-                <!-- Changement ici : utilisation de <video> au lieu de <iframe> -->
-                <video id="videoPlayer" controls autoplay>
+                <video id="videoPlayer" controls autoplay playsinline>
                     Votre navigateur ne supporte pas la lecture de vidéos HTML5.
                 </video>
             </div>
@@ -228,20 +221,27 @@
     </div>
     
     <script>
-        function showEpisodes(seasonNum) {
-            // Hide all episode selectors
-            document.querySelectorAll('.episode-selector').forEach(el => {
-                el.classList.remove('active');
-            });
+        // Affiche la saison 1 par défaut
+        document.addEventListener('DOMContentLoaded', function() {
+            showEpisodes(1, true);
+        });
+
+        function showEpisodes(seasonNum, initialLoad = false) {
+            if (!initialLoad) {
+                // Hide all episode selectors
+                document.querySelectorAll('.episode-selector').forEach(el => {
+                    el.classList.remove('active');
+                });
+                
+                // Update active button styling
+                document.querySelectorAll('.season-btn').forEach(btn => {
+                    btn.classList.remove('active');
+                });
+                event.target.classList.add('active');
+            }
             
             // Show the selected season's episodes
             document.getElementById(`season${seasonNum}-episodes`).classList.add('active');
-            
-            // Update active button styling
-            document.querySelectorAll('.season-btn').forEach(btn => {
-                btn.classList.remove('active');
-            });
-            event.target.classList.add('active');
         }
         
         function playEpisode(seasonNum, videoUrl) {
@@ -250,13 +250,18 @@
             // Update modal title
             const selectElement = document.getElementById(`season${seasonNum}-select`);
             const selectedOption = selectElement.options[selectElement.selectedIndex];
-            document.getElementById('modal-title').textContent = `Saison ${seasonNum} - ${selectedOption.text}`;
+            document.getElementById('modal-title').textContent = `Saison ${seasonNum === 1 ? 2 : 3} - ${selectedOption.text}`;
             
             // Set video source using HTML5 video element
             const videoPlayer = document.getElementById('videoPlayer');
             videoPlayer.src = videoUrl;
-            videoPlayer.load(); // Charge la vidéo
-            videoPlayer.play().catch(e => console.error("La lecture automatique a échoué:", e));
+            
+            // Reset video and try to play
+            videoPlayer.load();
+            videoPlayer.play().catch(e => {
+                console.error("La lecture automatique a échoué:", e);
+                // Affiche un message à l'utilisateur si nécessaire
+            });
             
             // Show modal
             document.getElementById('videoModal').style.display = 'flex';
@@ -266,7 +271,7 @@
             // Pause video and hide modal
             const videoPlayer = document.getElementById('videoPlayer');
             videoPlayer.pause();
-            videoPlayer.src = '';
+            videoPlayer.currentTime = 0;
             document.getElementById('videoModal').style.display = 'none';
         }
         
